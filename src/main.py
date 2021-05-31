@@ -30,15 +30,38 @@ def handle_invalid_usage(error):
 def sitemap():
     return generate_sitemap(app)
 
-@app.route('/user', methods=['GET'])
-def handle_hello():
+@app.route("/json/<int:id>", methods=["GET"])
+def dataBank(id):
+    data = User.query.filter_by(id=id).first()
+    data_json = data.serialize()
+    if data_json is not None:
+        return jsonify(data_json),200
+    else:
+        return jsonify("not found"), 404
 
-    response_body = {
-        "msg": "Hello, this is your GET /user response "
-    }
+@app.route('/all/json', methods=['GET'])
+def all_proffesionals():
+        users = User.query.all()
+        json_list = list(map(lambda user: user.serialize(), users))
+        return jsonify(json_list), 201
 
-    return jsonify(response_body), 200
 
+@app.route('/edit/json',methods=['PUT'])
+def edit_json():
+    body = request.get_json()
+    sender_id = body["sender_id"]
+    resiver_id= body["resiver_id"]
+    amount = body["amount"]
+    sender = User.query.filter_by(id=sender_id).first()
+    resiver = User.query.filter_by(id=resiver_id).first()
+    if sender and resiver is not None:
+        sender.balance = sender.balance - amount
+        resiver.balance = resiver.balance + amount
+        db.session.commit()
+        return jsonify({"resiver":resiver.serialize(),"sender":sender.serialize()}),200
+    else:
+        return jsonify("data no existe"),400
+    
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 3000))
